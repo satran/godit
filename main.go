@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -10,24 +11,19 @@ import (
 	"unsafe"
 )
 
+var errExit = errors.New("exit")
+
 func main() {
 	oldTermios := enableRawMode()
 	defer disableRawMode(oldTermios)
-
 	for {
-		var d [1]byte
-		_, err := os.Stdin.Read(d[:])
-		if err != nil && err != io.EOF {
-			log.Fatal(err)
-		}
-		c := d[0]
-		if c == 'q' {
+		editorRefreshScreen()
+		if err := editorProcessKeyPress(); err != nil {
+			if err == errExit {
+				return
+			}
+			log.Println(err)
 			return
-		}
-		if unicode.IsControl(rune(c)) {
-			fmt.Printf("^%d\r\n", c)
-		} else {
-			fmt.Printf("%c:%d \r\n", c, c)
 		}
 	}
 }
@@ -80,4 +76,41 @@ func tcGetAttr(fd uintptr) *syscall.Termios {
 		log.Fatalf("Problem getting terminal attributes: %s\n", err)
 	}
 	return termios
+}
+
+func editorRefreshScreen() {
+	// Clear screen
+	os.Stdout.Write([]byte("\x1b[2J"))
+	// move cursor to top
+	os.Stdout.Write([]byte("\x1b[H"))
+}
+
+func editorProcessKeyPress() error {
+	c := editorReadKey()
+	switch c {
+	case ctrlKey(c):
+		os.Stdout.Write([]byte("\x1b[2J"))
+		os.Stdout.Write([]byte("\x1b[H"))
+		return errExit
+	default:
+		if unicode.IsControl(rune(c)) {
+			fmt.Printf("^%d\r\n", c)
+		} else {
+			fmt.Printf("%c:%d \r\n", c, c)
+		}
+	}
+	return nil
+}
+
+func editorReadKey() uint8 {
+	var d [1]byte
+	_, err := os.Stdin.Read(d[:])
+	if err != nil && err != io.EOF {
+		log.Fatal(err)
+	}
+	return d[0]
+}
+
+func ctrlKey(c uint8) uint8 {
+	return c & 0x1f
 }
