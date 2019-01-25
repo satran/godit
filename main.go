@@ -1,10 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"os"
 	"syscall"
+	"unicode"
 	"unsafe"
 )
 
@@ -13,13 +15,19 @@ func main() {
 	defer disableRawMode(oldTermios)
 
 	for {
-		data := []byte{0}
-		_, err := os.Stdin.Read(data)
+		var d [1]byte
+		_, err := os.Stdin.Read(d[:])
 		if err != nil && err != io.EOF {
 			log.Fatal(err)
 		}
-		if string(data) == "q" {
+		c := d[0]
+		if c == 'q' {
 			return
+		}
+		if unicode.IsControl(rune(c)) {
+			fmt.Printf("^%d\r\n", c)
+		} else {
+			fmt.Printf("%c:%d \r\n", c, c)
 		}
 	}
 }
@@ -28,10 +36,23 @@ func enableRawMode() *syscall.Termios {
 	origTermios := tcGetAttr(os.Stdin.Fd())
 	var raw syscall.Termios
 	raw = *origTermios
-	raw.Iflag &^= syscall.BRKINT | syscall.ICRNL | syscall.INPCK | syscall.ISTRIP | syscall.IXON
+
+	// IXON disables ^s ^q
+	// ICRNL disables ^m to return enter
+	raw.Iflag &^= syscall.BRKINT | syscall.ICRNL | syscall.INPCK |
+		syscall.ISTRIP | syscall.IXON
+
+	// disable carriage returns
 	raw.Oflag &^= syscall.OPOST
 	raw.Cflag |= syscall.CS8
-	raw.Lflag &^= syscall.ECHO | syscall.ICANON | syscall.IEXTEN | syscall.ISIG
+
+	// ECHO is to ensure characters are not echoed to the prompt
+	// ICANON turns of canonical mode
+	// ISIG is to ensure SIGINT SIGSTOP is ignored when pressing ^c ^d
+	// IEXTEN disables terminal to wait for input after pressing a ctrl key.
+	raw.Lflag &^= syscall.ECHO | syscall.ICANON | syscall.IEXTEN |
+		syscall.ISIG
+
 	raw.Cc[syscall.VMIN+1] = 0
 	raw.Cc[syscall.VTIME+1] = 1
 	if e := tcSetAttr(os.Stdin.Fd(), &raw); e != nil {
