@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -90,12 +91,16 @@ func initEditor() error {
 }
 
 func editorRefreshScreen() {
-	// Clear screen
-	write("\x1b[2J")
+	// hide cursor while repainting
+	io.WriteString(abuf, "\x1b[?25l")
 	// move cursor to top
-	write("\x1b[H")
+	io.WriteString(abuf, "\x1b[H")
 	editorDrawRows()
-	write("\x1b[H")
+	io.WriteString(abuf, "\x1b[H")
+	// show cursor again
+	io.WriteString(abuf, "\x1b[?25h")
+	io.Copy(os.Stdout, abuf)
+	abuf.Reset()
 }
 
 func editorProcessKeyPress() error {
@@ -107,9 +112,9 @@ func editorProcessKeyPress() error {
 		return errExit
 	default:
 		if unicode.IsControl(rune(c)) {
-			fmt.Printf("^%d\r\n", c)
+			write(fmt.Sprintf("^%d\r\n", c))
 		} else {
-			fmt.Printf("%c:%d \r\n", c, c)
+			write(fmt.Sprintf("%c:%d \r\n", c, c))
 		}
 	}
 	return nil
@@ -130,7 +135,12 @@ func ctrlKey(c uint8) uint8 {
 
 func editorDrawRows() {
 	for i := 0; i < e.screenrows; i++ {
-		write("~\r\n")
+		io.WriteString(abuf, "~")
+		// Clear the line
+		io.WriteString(abuf, "\x1b[K")
+		if i < e.screenrows-1 {
+			io.WriteString(abuf, "\r\n")
+		}
 	}
 }
 
@@ -192,3 +202,5 @@ var e = struct {
 	origTermios            *syscall.Termios
 	screenrows, screencols int
 }{}
+
+var abuf = bytes.NewBuffer(nil)
