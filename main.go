@@ -14,6 +14,13 @@ import (
 
 var errExit = errors.New("exit")
 
+const (
+	arrowLeft = iota + 1000
+	arrowRight
+	arrowUp
+	arrowDown
+)
+
 func main() {
 	oldTermios := enableRawMode()
 	defer disableRawMode(oldTermios)
@@ -96,7 +103,8 @@ func editorRefreshScreen() {
 	// move cursor to top
 	io.WriteString(abuf, "\x1b[H")
 	editorDrawRows()
-	io.WriteString(abuf, "\x1b[H")
+
+	fmt.Fprintf(abuf, "\x1b[%d;%dH", e.cy+1, e.cx+1)
 	// show cursor again
 	io.WriteString(abuf, "\x1b[?25h")
 	io.Copy(os.Stdout, abuf)
@@ -110,6 +118,8 @@ func editorProcessKeyPress() error {
 		write("\x1b[2J")
 		write("\x1b[H")
 		return errExit
+	case arrowUp, arrowDown, arrowLeft, arrowRight:
+		editorMoveCursor(c)
 	default:
 		if unicode.IsControl(rune(c)) {
 			write(fmt.Sprintf("^%d\r\n", c))
@@ -120,16 +130,58 @@ func editorProcessKeyPress() error {
 	return nil
 }
 
-func editorReadKey() uint8 {
-	var d [1]byte
-	_, err := os.Stdin.Read(d[:])
+func editorReadKey() int {
+	var c [3]byte
+	_, err := os.Stdin.Read(c[:1])
 	if err != nil && err != io.EOF {
 		log.Fatal(err)
 	}
-	return d[0]
+
+	if c[0] != '\x1b' {
+		return int(c[0])
+	}
+
+	if _, err := os.Stdin.Read(c[1:3]); err != nil && err != io.EOF {
+		panic(err)
+	}
+	if c[1] == '[' {
+		switch c[2] {
+		case 'A':
+			return arrowUp
+		case 'B':
+			return arrowDown
+		case 'C':
+			return arrowRight
+		case 'D':
+			return arrowLeft
+		}
+	}
+
+	return '\x1b'
 }
 
-func ctrlKey(c uint8) uint8 {
+func editorMoveCursor(key int) {
+	switch key {
+	case arrowLeft:
+		if e.cx != 0 {
+			e.cx--
+		}
+	case arrowRight:
+		if e.cx != e.screencols-1 {
+			e.cx++
+		}
+	case arrowUp:
+		if e.cy != 0 {
+			e.cy--
+		}
+	case arrowDown:
+		if e.cy != e.screenrows-1 {
+			e.cy++
+		}
+	}
+}
+
+func ctrlKey(c int) int {
 	return c & 0x1f
 }
 
@@ -201,6 +253,7 @@ func write(in string) error {
 var e = struct {
 	origTermios            *syscall.Termios
 	screenrows, screencols int
+	cx, cy                 int
 }{}
 
 var abuf = bytes.NewBuffer(nil)
