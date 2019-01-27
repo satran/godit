@@ -26,6 +26,7 @@ const (
 	pageDown
 	homeKey
 	endKey
+	deleteKey
 )
 
 func main() {
@@ -190,6 +191,8 @@ func editorReadKey() int {
 				switch c[2] {
 				case '1':
 					return homeKey
+				case '3':
+					return deleteKey
 				case '4':
 					return endKey
 				case '5':
