@@ -19,6 +19,8 @@ const (
 	arrowRight
 	arrowUp
 	arrowDown
+	pageUp
+	pageDown
 )
 
 func main() {
@@ -120,6 +122,14 @@ func editorProcessKeyPress() error {
 		return errExit
 	case arrowUp, arrowDown, arrowLeft, arrowRight:
 		editorMoveCursor(c)
+	case pageUp, pageDown:
+		for i := e.screenrows; i > 0; i-- {
+			if c == pageUp {
+				editorMoveCursor(arrowUp)
+			} else {
+				editorMoveCursor(arrowDown)
+			}
+		}
 	default:
 		if unicode.IsControl(rune(c)) {
 			write(fmt.Sprintf("^%d\r\n", c))
@@ -131,7 +141,7 @@ func editorProcessKeyPress() error {
 }
 
 func editorReadKey() int {
-	var c [3]byte
+	var c [4]byte
 	_, err := os.Stdin.Read(c[:1])
 	if err != nil && err != io.EOF {
 		log.Fatal(err)
@@ -144,19 +154,34 @@ func editorReadKey() int {
 	if _, err := os.Stdin.Read(c[1:3]); err != nil && err != io.EOF {
 		panic(err)
 	}
+
 	if c[1] == '[' {
-		switch c[2] {
-		case 'A':
-			return arrowUp
-		case 'B':
-			return arrowDown
-		case 'C':
-			return arrowRight
-		case 'D':
-			return arrowLeft
+		if c[2] >= '0' && c[2] <= '9' {
+			_, err := os.Stdin.Read(c[3:4])
+			if err != nil && err != io.EOF {
+				log.Fatal(err)
+			}
+			if c[3] == '~' {
+				switch c[2] {
+				case '5':
+					return pageUp
+				case '6':
+					return pageDown
+				}
+			}
+		} else {
+			switch c[2] {
+			case 'A':
+				return arrowUp
+			case 'B':
+				return arrowDown
+			case 'C':
+				return arrowRight
+			case 'D':
+				return arrowLeft
+			}
 		}
 	}
-
 	return '\x1b'
 }
 
