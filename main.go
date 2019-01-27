@@ -24,6 +24,8 @@ const (
 	arrowDown
 	pageUp
 	pageDown
+	homeKey
+	endKey
 )
 
 func main() {
@@ -149,6 +151,10 @@ func editorProcessKeyPress() error {
 				editorMoveCursor(arrowDown)
 			}
 		}
+	case homeKey:
+		e.cx = 0
+	case endKey:
+		e.cx = e.screencols - 1
 	default:
 		if unicode.IsControl(rune(c)) {
 			write(fmt.Sprintf("^%d\r\n", c))
@@ -182,14 +188,21 @@ func editorReadKey() int {
 			}
 			if c[3] == '~' {
 				switch c[2] {
+				case '1':
+					return homeKey
+				case '4':
+					return endKey
 				case '5':
 					return pageUp
 				case '6':
 					return pageDown
+				case '7':
+					return homeKey
+				case '8':
+					return endKey
 				}
 			}
 		} else {
-
 			switch c[2] {
 			case 'A':
 				return arrowUp
@@ -199,7 +212,18 @@ func editorReadKey() int {
 				return arrowRight
 			case 'D':
 				return arrowLeft
+			case 'H':
+				return homeKey
+			case 'F':
+				return endKey
 			}
+		}
+	} else if c[1] == 'O' {
+		switch c[2] {
+		case 'H':
+			return homeKey
+		case 'F':
+			return endKey
 		}
 	}
 	return '\x1b'
