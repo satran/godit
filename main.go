@@ -3,8 +3,10 @@ package main
 import (
 	"bytes"
 	"errors"
+	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"syscall"
@@ -13,6 +15,7 @@ import (
 )
 
 var errExit = errors.New("exit")
+var debug *log.Logger
 
 const (
 	arrowLeft = iota + 1000
@@ -24,6 +27,22 @@ const (
 )
 
 func main() {
+	dbg := flag.Bool("debug", true, "write debug logs to debug.log")
+	flag.Parse()
+	var w io.Writer
+	if *dbg {
+		f, err := os.OpenFile("debug.log", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.ModePerm)
+		if err != nil {
+			log.Printf("can't open log file:%s", err)
+			return
+		}
+		defer f.Close()
+		w = f
+	} else {
+		w = ioutil.Discard
+	}
+	debug = log.New(w, "", log.Lshortfile)
+
 	oldTermios := enableRawMode()
 	defer disableRawMode(oldTermios)
 	initEditor()
@@ -170,6 +189,7 @@ func editorReadKey() int {
 				}
 			}
 		} else {
+
 			switch c[2] {
 			case 'A':
 				return arrowUp
