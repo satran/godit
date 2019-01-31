@@ -49,8 +49,14 @@ func main() {
 		fatal(oldTermios, "creating editor: %s", err)
 	}
 
+	name := flag.Args()[0]
+	b, err := newBuffer(name)
+	if err != nil {
+		fatal(oldTermios, "can't open file: %s", err)
+	}
+	e.SetBuffer(name, b)
+	e.Render()
 	for {
-		e.RefreshScreen()
 		if err := e.ProcessKeyPress(); err != nil {
 			if err == errExit {
 				return

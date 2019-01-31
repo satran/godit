@@ -6,12 +6,17 @@ import (
 	"io"
 	"log"
 	"os"
+	"sync"
 	"unicode"
 )
 
 type editor struct {
 	screenrows, screencols int
 	cx, cy                 int
+
+	bufferLock    sync.Mutex
+	buffers       map[string]Buffer
+	currentBuffer Buffer
 }
 
 func newEditor() (*editor, error) {
@@ -23,6 +28,17 @@ func newEditor() (*editor, error) {
 	e.screenrows = r
 	e.screencols = c
 	return e, nil
+}
+
+func (e *editor) SetBuffer(name string, b Buffer) {
+	e.bufferLock.Lock()
+	defer e.bufferLock.Unlock()
+	e.currentBuffer = b
+	e.buffers[name] = b
+}
+
+func (e *editor) Render() {
+
 }
 
 func (e *editor) RefreshScreen() {
