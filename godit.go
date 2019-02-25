@@ -78,6 +78,7 @@ func new_godit(filenames []string) *godit {
 		buf.name = g.buffer_name("unnamed")
 		g.buffers = append(g.buffers, buf)
 	}
+	v.on_vcommand(vcommand_move_cursor_to_line, rune(num))
 	g.views = new_view_tree_leaf(nil, new_view(g.view_context(), g.buffers[0]))
 	g.active = g.views
 	g.keymacros = make([]key_event, 0, 50)
@@ -347,8 +348,8 @@ func (g *godit) composite_recursively(v *view_tree) {
 		splitter.Width = 1
 		splitter.Height -= 1
 		g.uibuf.Fill(splitter, termbox.Cell{
-			Fg: termbox.AttrReverse,
-			Bg: termbox.AttrReverse,
+			Fg: termbox.ColorDefault,
+			Bg: termbox.ColorDefault,
 			Ch: '|',
 		})
 	} else {
