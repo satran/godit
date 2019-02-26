@@ -3,11 +3,12 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/nsf/termbox-go"
-	"github.com/nsf/tulib"
 	"os"
 	"strings"
 	"unicode/utf8"
+
+	termbox "github.com/nsf/termbox-go"
+	"github.com/nsf/tulib"
 )
 
 //----------------------------------------------------------------------------

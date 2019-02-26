@@ -3,12 +3,14 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/nsf/termbox-go"
-	"github.com/nsf/tulib"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"strings"
+
+	termbox "github.com/nsf/termbox-go"
+	"github.com/nsf/tulib"
 )
 
 const (
@@ -78,7 +80,6 @@ func new_godit(filenames []string) *godit {
 		buf.name = g.buffer_name("unnamed")
 		g.buffers = append(g.buffers, buf)
 	}
-	v.on_vcommand(vcommand_move_cursor_to_line, rune(num))
 	g.views = new_view_tree_leaf(nil, new_view(g.view_context(), g.buffers[0]))
 	g.active = g.views
 	g.keymacros = make([]key_event, 0, 50)
@@ -570,6 +571,45 @@ func (g *godit) save_as_buffer_lemp(raw bool) line_edit_mode_params {
 				v.dirty |= dirty_status
 				g.set_status("Wrote %s", b.path)
 			}
+		},
+	}
+}
+
+// "lemp" stands for "line edit mode params"
+func (g *godit) run_command_lemp() line_edit_mode_params {
+	v := g.active.leaf
+	return line_edit_mode_params{
+		ac_decide: filesystem_line_ac_decide,
+		prompt:    "Run command:",
+		on_apply: func(linebuf *buffer) {
+			v.finalize_action_group()
+			cmdstr := string(linebuf.contents())
+			// TODO: not portable
+			cmd := exec.Command("/bin/bash", "-c", cmdstr)
+			start := cursor_location{
+				line:     v.buf.first_line,
+				line_num: 0,
+				boffset:  0,
+			}
+			offset := start.distance(v.cursor)
+			cmd.Env = append(os.Environ(), fmt.Sprintf("offset=%d", offset), fmt.Sprintf("file=%s", v.buf.path))
+			out, err := cmd.Output()
+			if err != nil {
+				er := err.(*exec.ExitError)
+				panic(string(er.Stderr))
+			}
+			line := strings.Split(string(out), "\n")[0]
+			chunks := strings.Split(line, ":")
+			if _, err := os.Stat(chunks[0]); os.IsNotExist(err) {
+				return
+			}
+			g.open_buffers_from_pattern(chunks[0])
+			num := 1
+			if len(chunks) > 1 {
+				num, _ = strconv.Atoi(chunks[1])
+			}
+			v.on_vcommand(vcommand_move_cursor_to_line, rune(num))
+			v.finalize_action_group()
 		},
 	}
 }

@@ -1,9 +1,10 @@
 package main
 
 import (
-	"github.com/nsf/termbox-go"
-	"github.com/nsf/tulib"
 	"strconv"
+
+	termbox "github.com/nsf/termbox-go"
+	"github.com/nsf/tulib"
 )
 
 //----------------------------------------------------------------------------
@@ -156,6 +157,9 @@ func (e extended_mode) on_key(ev *termbox.Event) {
 				cursor_ex.abs_boffset)
 		case '!':
 			g.set_overlay_mode(init_line_edit_mode(g, g.filter_region_lemp()))
+			return
+		case '$':
+			g.set_overlay_mode(init_line_edit_mode(g, g.run_command_lemp()))
 			return
 		default:
 			goto undefined
