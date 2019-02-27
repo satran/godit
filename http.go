@@ -3,6 +3,7 @@ package main
 import (
 	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"os"
 	"strconv"
@@ -11,9 +12,18 @@ import (
 	termbox "github.com/nsf/termbox-go"
 )
 
+func (g *godit) startHTTPServer() error {
+	listener, err := net.Listen("tcp", "localhost:0")
+	if err != nil {
+		return err
+	}
+	g.httpPort = listener.Addr().(*net.TCPAddr).Port
+	return http.Serve(listener, g)
+}
+
 func (g *godit) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.URL.Path {
-	case "/current/buffer":
+	case "/buffers/current":
 		g.handleCurrentBuffer(w, r)
 	}
 }
@@ -38,5 +48,7 @@ func (g *godit) handleCurrentBuffer(w http.ResponseWriter, r *http.Request) {
 		}
 		v.on_vcommand(vcommand_move_cursor_to_line, rune(num))
 		v.finalize_action_group()
+		g.draw()
+		termbox.Flush()
 	}
 }

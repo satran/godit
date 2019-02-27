@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -68,6 +67,7 @@ type godit struct {
 	isearch_last_word []byte
 	s_and_r_last_word []byte
 	s_and_r_last_repl []byte
+	httpPort          int
 }
 
 func new_godit(filenames []string) *godit {
@@ -416,11 +416,9 @@ func (g *godit) main_loop() {
 			g.termbox_event <- termbox.PollEvent()
 		}
 	}()
-	go func() {
-		if err := http.ListenAndServe(":8080", g); err != nil {
-			panic(err)
-		}
-	}()
+
+	go g.startHTTPServer()
+
 	for {
 		select {
 		case ev := <-g.termbox_event:
@@ -779,7 +777,7 @@ func main() {
 	}
 	defer termbox.Close()
 	termbox.SetInputMode(termbox.InputAlt)
-
+	termbox.SetOutputMode(termbox.Output256)
 	godit := new_godit(os.Args[1:])
 	godit.resize()
 	godit.draw()
