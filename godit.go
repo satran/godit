@@ -7,7 +7,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
-	"strings"
 
 	termbox "github.com/nsf/termbox-go"
 	"github.com/nsf/tulib"
@@ -67,6 +66,7 @@ type godit struct {
 	isearch_last_word []byte
 	s_and_r_last_word []byte
 	s_and_r_last_repl []byte
+	httpPort          int
 }
 
 func new_godit(filenames []string) *godit {
@@ -415,6 +415,9 @@ func (g *godit) main_loop() {
 			g.termbox_event <- termbox.PollEvent()
 		}
 	}()
+
+	go g.startHTTPServer()
+
 	for {
 		select {
 		case ev := <-g.termbox_event:
@@ -586,32 +589,25 @@ func (g *godit) run_command_lemp() line_edit_mode_params {
 			cmdstr := string(linebuf.contents())
 			// TODO: not portable
 			cmd := exec.Command("/bin/bash", "-c", cmdstr)
-			start := cursor_location{
-				line:     v.buf.first_line,
-				line_num: 0,
-				boffset:  0,
-			}
-			offset := start.distance(v.cursor)
-			cmd.Env = append(os.Environ(), fmt.Sprintf("offset=%d", offset), fmt.Sprintf("file=%s", v.buf.path))
+			cmd.Env = g.env_vars()
 			out, err := cmd.Output()
+			g.set_status(string(out))
 			if err != nil {
 				er := err.(*exec.ExitError)
-				panic(string(er.Stderr))
+				g.set_status(string(er.Stderr))
 			}
-			line := strings.Split(string(out), "\n")[0]
-			chunks := strings.Split(line, ":")
-			if _, err := os.Stat(chunks[0]); os.IsNotExist(err) {
-				return
-			}
-			g.open_buffers_from_pattern(chunks[0])
-			num := 1
-			if len(chunks) > 1 {
-				num, _ = strconv.Atoi(chunks[1])
-			}
-			v.on_vcommand(vcommand_move_cursor_to_line, rune(num))
 			v.finalize_action_group()
 		},
 	}
+}
+
+func (g *godit) env_vars() []string {
+	v := g.active.leaf
+	return append(os.Environ(),
+		fmt.Sprintf("TAM_PORT=%d", g.httpPort),
+		fmt.Sprintf("TAM_OFFSET=%d", v.current_offset()),
+		fmt.Sprintf("TAM_FILE=%s", v.buf.path),
+	)
 }
 
 // "lemp" stands for "line edit mode params"
@@ -771,7 +767,7 @@ func main() {
 	}
 	defer termbox.Close()
 	termbox.SetInputMode(termbox.InputAlt)
-
+	termbox.SetOutputMode(termbox.Output256)
 	godit := new_godit(os.Args[1:])
 	godit.resize()
 	godit.draw()
