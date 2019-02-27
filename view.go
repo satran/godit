@@ -379,21 +379,21 @@ func (v *view) draw_status() {
 		return
 	}
 
-	// fill background with '-'
+	// fill background with ' '
 	lp := default_label_params
-	lp.Bg = termbox.AttrReverse
-	lp.Fg = termbox.AttrReverse | termbox.AttrBold
+	lp.Bg = 237
+	lp.Fg = 255
 	v.uibuf.Fill(tulib.Rect{0, v.height(), v.uibuf.Width, 1}, termbox.Cell{
-		Fg: termbox.AttrReverse,
-		Bg: termbox.AttrReverse,
-		Ch: '-',
+		Fg: 255,
+		Bg: 237,
+		Ch: ' ',
 	})
 
 	// on disk sync status
 	if !v.buf.synced_with_disk() {
 		cell := termbox.Cell{
-			Fg: termbox.AttrReverse,
-			Bg: termbox.AttrReverse,
+			Fg: 255,
+			Bg: 237,
 			Ch: '*',
 		}
 		v.uibuf.Set(1, v.height(), cell)
@@ -405,7 +405,7 @@ func (v *view) draw_status() {
 	v.uibuf.DrawLabel(tulib.Rect{5, v.height(), v.uibuf.Width, 1},
 		&lp, v.tmpbuf.Bytes())
 	namel := v.tmpbuf.Len()
-	lp.Fg = termbox.AttrReverse
+	lp.Fg = 255
 	v.tmpbuf.Reset()
 	fmt.Fprintf(&v.tmpbuf, "(%d, %d)  ", v.cursor.line_num, v.cursor_voffset)
 	v.uibuf.DrawLabel(tulib.Rect{5 + namel, v.height(), v.uibuf.Width, 1},
