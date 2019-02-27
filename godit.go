@@ -7,7 +7,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
-	"strings"
 
 	termbox "github.com/nsf/termbox-go"
 	"github.com/nsf/tulib"
@@ -592,21 +591,11 @@ func (g *godit) run_command_lemp() line_edit_mode_params {
 			cmd := exec.Command("/bin/bash", "-c", cmdstr)
 			cmd.Env = g.env_vars()
 			out, err := cmd.Output()
+			g.set_status(string(out))
 			if err != nil {
 				er := err.(*exec.ExitError)
-				panic(string(er.Stderr))
+				g.set_status(string(er.Stderr))
 			}
-			line := strings.Split(string(out), "\n")[0]
-			chunks := strings.Split(line, ":")
-			if _, err := os.Stat(chunks[0]); os.IsNotExist(err) {
-				return
-			}
-			g.open_buffers_from_pattern(chunks[0])
-			num := 1
-			if len(chunks) > 1 {
-				num, _ = strconv.Atoi(chunks[1])
-			}
-			v.on_vcommand(vcommand_move_cursor_to_line, rune(num))
 			v.finalize_action_group()
 		},
 	}
@@ -615,6 +604,7 @@ func (g *godit) run_command_lemp() line_edit_mode_params {
 func (g *godit) env_vars() []string {
 	v := g.active.leaf
 	return append(os.Environ(),
+		fmt.Sprintf("TAM_PORT=%d", g.httpPort),
 		fmt.Sprintf("TAM_OFFSET=%d", v.current_offset()),
 		fmt.Sprintf("TAM_FILE=%s", v.buf.path),
 	)

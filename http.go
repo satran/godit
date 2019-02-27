@@ -18,6 +18,9 @@ func (g *godit) startHTTPServer() error {
 		return err
 	}
 	g.httpPort = listener.Addr().(*net.TCPAddr).Port
+	g.set_status("HTTP port on %d", g.httpPort)
+	g.draw()
+	termbox.Flush()
 	return http.Serve(listener, g)
 }
 
