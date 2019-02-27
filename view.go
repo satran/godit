@@ -1198,11 +1198,6 @@ func (v *view) on_key(ev *termbox.Event) {
 		v.on_vcommand(vcommand_insert_rune, ' ')
 	case termbox.KeyEnter, termbox.KeyCtrlJ:
 		c := '\n'
-		if ev.Key == termbox.KeyEnter {
-			// we use '\r' for <enter>, because it doesn't cause
-			// autoindent
-			c = '\r'
-		}
 		if v.ac != nil {
 			v.on_vcommand(vcommand_autocompl_finalize, 0)
 		} else {
