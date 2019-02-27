@@ -158,9 +158,6 @@ func (e extended_mode) on_key(ev *termbox.Event) {
 		case '!':
 			g.set_overlay_mode(init_line_edit_mode(g, g.filter_region_lemp()))
 			return
-		case '$':
-			g.set_overlay_mode(init_line_edit_mode(g, g.run_command_lemp()))
-			return
 		default:
 			goto undefined
 		}
