@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -415,6 +416,11 @@ func (g *godit) main_loop() {
 			g.termbox_event <- termbox.PollEvent()
 		}
 	}()
+	go func() {
+		if err := http.ListenAndServe(":8080", g); err != nil {
+			panic(err)
+		}
+	}()
 	for {
 		select {
 		case ev := <-g.termbox_event:
@@ -586,13 +592,7 @@ func (g *godit) run_command_lemp() line_edit_mode_params {
 			cmdstr := string(linebuf.contents())
 			// TODO: not portable
 			cmd := exec.Command("/bin/bash", "-c", cmdstr)
-			start := cursor_location{
-				line:     v.buf.first_line,
-				line_num: 0,
-				boffset:  0,
-			}
-			offset := start.distance(v.cursor)
-			cmd.Env = append(os.Environ(), fmt.Sprintf("offset=%d", offset), fmt.Sprintf("file=%s", v.buf.path))
+			cmd.Env = g.env_vars()
 			out, err := cmd.Output()
 			if err != nil {
 				er := err.(*exec.ExitError)
@@ -612,6 +612,14 @@ func (g *godit) run_command_lemp() line_edit_mode_params {
 			v.finalize_action_group()
 		},
 	}
+}
+
+func (g *godit) env_vars() []string {
+	v := g.active.leaf
+	return append(os.Environ(),
+		fmt.Sprintf("TAM_OFFSET=%d", v.current_offset()),
+		fmt.Sprintf("TAM_FILE=%d", v.buf.path),
+	)
 }
 
 // "lemp" stands for "line edit mode params"

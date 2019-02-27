@@ -161,6 +161,15 @@ func new_view(ctx view_context, buf *buffer) *view {
 	return v
 }
 
+func (v *view) current_offset()int{
+	start := cursor_location{
+		line:     v.buf.first_line,
+		line_num: 0,
+		boffset:  0,
+	}
+	return start.distance(v.cursor)
+}
+
 func (v *view) activate() {
 	v.last_vcommand = vcommand_none
 }
