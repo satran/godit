@@ -387,7 +387,7 @@ func (g *godit) on_alt_key(ev *termbox.Event) bool {
 	case 'q':
 		g.set_overlay_mode(init_fill_region_mode(g))
 		return true
-	case '$':
+	case 'x':
 		g.set_overlay_mode(init_line_edit_mode(g, g.run_command_lemp()))
 		return true
 	}
