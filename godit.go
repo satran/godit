@@ -616,7 +616,7 @@ func (g *godit) env_vars() []string {
 	v := g.active.leaf
 	return append(os.Environ(),
 		fmt.Sprintf("TAM_OFFSET=%d", v.current_offset()),
-		fmt.Sprintf("TAM_FILE=%d", v.buf.path),
+		fmt.Sprintf("TAM_FILE=%s", v.buf.path),
 	)
 }
 
