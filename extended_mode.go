@@ -155,9 +155,6 @@ func (e extended_mode) on_key(ev *termbox.Event) {
 				strconv.FormatInt(int64(r), 8),
 				strconv.FormatInt(int64(r), 16),
 				cursor_ex.abs_boffset)
-		case '!':
-			g.set_overlay_mode(init_line_edit_mode(g, g.filter_region_lemp()))
-			return
 		default:
 			goto undefined
 		}

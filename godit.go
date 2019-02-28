@@ -390,6 +390,9 @@ func (g *godit) on_alt_key(ev *termbox.Event) bool {
 	case 'x':
 		g.set_overlay_mode(init_line_edit_mode(g, g.run_command_lemp()))
 		return true
+	case '|':
+		g.set_overlay_mode(init_line_edit_mode(g, g.filter_region_lemp()))
+		return true
 	}
 	return false
 }
