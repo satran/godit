@@ -349,7 +349,7 @@ func (g *godit) composite_recursively(v *view_tree) {
 		splitter.Width = 1
 		splitter.Height -= 1
 		g.uibuf.Fill(splitter, termbox.Cell{
-			Fg: termbox.ColorDefault,
+			Fg: 237,
 			Bg: termbox.ColorDefault,
 			Ch: '|',
 		})

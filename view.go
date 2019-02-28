@@ -161,7 +161,7 @@ func new_view(ctx view_context, buf *buffer) *view {
 	return v
 }
 
-func (v *view) current_offset()int{
+func (v *view) current_offset() int {
 	start := cursor_location{
 		line:     v.buf.first_line,
 		line_num: 0,
@@ -391,26 +391,27 @@ func (v *view) draw_status() {
 
 	// on disk sync status
 	if !v.buf.synced_with_disk() {
-		cell := termbox.Cell{
+		v.uibuf.Fill(tulib.Rect{0, v.height(), 1, 1}, termbox.Cell{
 			Fg: 255,
-			Bg: 237,
-			Ch: '*',
-		}
-		v.uibuf.Set(1, v.height(), cell)
-		v.uibuf.Set(2, v.height(), cell)
+			Bg: termbox.ColorRed,
+			Ch: ' ',
+		})
 	}
 
-	// filename
-	fmt.Fprintf(&v.tmpbuf, "  %s  ", v.buf.name)
-	v.uibuf.DrawLabel(tulib.Rect{5, v.height(), v.uibuf.Width, 1},
-		&lp, v.tmpbuf.Bytes())
-	namel := v.tmpbuf.Len()
+	// line
 	lp.Fg = 255
+	fmt.Fprintf(&v.tmpbuf, "%d:%d ", v.cursor.line_num, v.cursor_voffset)
+	v.uibuf.DrawLabel(tulib.Rect{1, v.height(), v.uibuf.Width, 1},
+		&lp, v.tmpbuf.Bytes())
+	linel := v.tmpbuf.Len()
 	v.tmpbuf.Reset()
-	fmt.Fprintf(&v.tmpbuf, "(%d, %d)  ", v.cursor.line_num, v.cursor_voffset)
-	v.uibuf.DrawLabel(tulib.Rect{5 + namel, v.height(), v.uibuf.Width, 1},
+
+	// filename
+	fmt.Fprintf(&v.tmpbuf, "%s", v.buf.name)
+	v.uibuf.DrawLabel(tulib.Rect{1+linel, v.height(), v.uibuf.Width, 1},
 		&lp, v.tmpbuf.Bytes())
 	v.tmpbuf.Reset()
+
 }
 
 // Draw the current view to the 'v.uibuf'.
