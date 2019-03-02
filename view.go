@@ -381,8 +381,8 @@ func (v *view) draw_status() {
 
 	// fill background with ' '
 	lp := default_label_params
-	lp.Bg = 237
 	lp.Fg = 255
+	lp.Bg = 237
 	v.uibuf.Fill(tulib.Rect{0, v.height(), v.uibuf.Width, 1}, termbox.Cell{
 		Fg: 255,
 		Bg: 237,
@@ -399,15 +399,18 @@ func (v *view) draw_status() {
 	}
 
 	// line
-	lp.Fg = 255
-	fmt.Fprintf(&v.tmpbuf, "%d:%d ", v.cursor.line_num, v.cursor_voffset)
+	lp.Fg = 237
+	lp.Bg = 247
+	fmt.Fprintf(&v.tmpbuf, " %d:%d ", v.cursor.line_num, v.cursor_voffset)
 	v.uibuf.DrawLabel(tulib.Rect{1, v.height(), v.uibuf.Width, 1},
 		&lp, v.tmpbuf.Bytes())
 	linel := v.tmpbuf.Len()
 	v.tmpbuf.Reset()
 
 	// filename
-	fmt.Fprintf(&v.tmpbuf, "%s", v.buf.name)
+	lp.Fg = 255
+	lp.Bg = 237
+	fmt.Fprintf(&v.tmpbuf, " %s", v.buf.name)
 	v.uibuf.DrawLabel(tulib.Rect{1+linel, v.height(), v.uibuf.Width, 1},
 		&lp, v.tmpbuf.Bytes())
 	v.tmpbuf.Reset()
