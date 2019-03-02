@@ -67,6 +67,7 @@ type godit struct {
 	s_and_r_last_word []byte
 	s_and_r_last_repl []byte
 	httpPort          int
+	asyncFns          chan func()
 }
 
 func new_godit(filenames []string) *godit {
@@ -84,6 +85,7 @@ func new_godit(filenames []string) *godit {
 	g.active = g.views
 	g.keymacros = make([]key_event, 0, 50)
 	g.isearch_last_word = make([]byte, 0, 32)
+	g.asyncFns = make(chan func(), 100)
 	return g
 }
 
@@ -432,9 +434,11 @@ func (g *godit) main_loop() {
 				return
 			}
 			g.consume_more_events()
-			g.draw()
-			termbox.Flush()
+		case fn := <-g.asyncFns:
+			fn()
 		}
+		g.draw()
+		termbox.Flush()
 	}
 }
 
@@ -596,12 +600,17 @@ func (g *godit) run_command_lemp() line_edit_mode_params {
 			// TODO: not portable
 			cmd := exec.Command("/bin/bash", "-c", cmdstr)
 			cmd.Env = g.env_vars()
-			out, err := cmd.Output()
-			g.set_status(string(out))
-			if err != nil {
-				er := err.(*exec.ExitError)
-				g.set_status(string(er.Stderr))
-			}
+			go func() {
+				out, err := cmd.Output()
+				g.asyncFns <- func() {
+					g.set_status(string(out))
+					if err != nil {
+						er := err.(*exec.ExitError)
+						g.set_status(string(er.Stderr))
+						v.finalize_action_group()
+					}
+				}
+			}()
 			v.finalize_action_group()
 		},
 	}

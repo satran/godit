@@ -17,10 +17,12 @@ func (g *godit) startHTTPServer() error {
 	if err != nil {
 		return err
 	}
-	g.httpPort = listener.Addr().(*net.TCPAddr).Port
-	g.set_status("HTTP port on %d", g.httpPort)
-	g.draw()
-	termbox.Flush()
+	g.asyncFns <- func() {
+		g.httpPort = listener.Addr().(*net.TCPAddr).Port
+		g.set_status("HTTP port on %d", g.httpPort)
+		g.draw()
+		termbox.Flush()
+	}
 	return http.Serve(listener, g)
 }
 
@@ -35,7 +37,12 @@ func (g *godit) handleCurrentBuffer(w http.ResponseWriter, r *http.Request) {
 	v := g.active.leaf
 	switch r.Method {
 	case "GET":
-		io.WriteString(w, v.buf.path)
+		c := make(chan string)
+		g.asyncFns <- func() {
+			c <- v.buf.path
+		}
+		path := <-c
+		io.WriteString(w, path)
 		return
 	case "POST":
 		by, _ := ioutil.ReadAll(r.Body)
@@ -44,14 +51,14 @@ func (g *godit) handleCurrentBuffer(w http.ResponseWriter, r *http.Request) {
 		if _, err := os.Stat(chunks[0]); os.IsNotExist(err) {
 			return
 		}
-		g.open_buffers_from_pattern(chunks[0])
-		num := 1
-		if len(chunks) > 1 {
-			num, _ = strconv.Atoi(chunks[1])
+		g.asyncFns <- func() {
+			g.open_buffers_from_pattern(chunks[0])
+			num := 1
+			if len(chunks) > 1 {
+				num, _ = strconv.Atoi(chunks[1])
+			}
+			v.on_vcommand(vcommand_move_cursor_to_line, rune(num))
+			v.finalize_action_group()
 		}
-		v.on_vcommand(vcommand_move_cursor_to_line, rune(num))
-		v.finalize_action_group()
-		g.draw()
-		termbox.Flush()
 	}
 }
