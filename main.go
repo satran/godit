@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	termbox "github.com/nsf/termbox-go"
 	"github.com/nsf/tulib"
@@ -73,7 +74,12 @@ type godit struct {
 func new_godit(filenames []string) *godit {
 	g := new(godit)
 	g.buffers = make([]*buffer, 0, 20)
+	line := 1
 	for _, filename := range filenames {
+		if strings.HasPrefix(filename, "+") {
+			line, _ = strconv.Atoi(filename[1:])
+			continue
+		}
 		g.new_buffer_from_file(filename)
 	}
 	if len(g.buffers) == 0 {
@@ -83,6 +89,7 @@ func new_godit(filenames []string) *godit {
 	}
 	g.views = new_view_tree_leaf(nil, new_view(g.view_context(), g.buffers[0]))
 	g.active = g.views
+	g.active.leaf.move_cursor_to_line(line)
 	g.keymacros = make([]key_event, 0, 50)
 	g.isearch_last_word = make([]byte, 0, 32)
 	g.asyncFns = make(chan func(), 100)
